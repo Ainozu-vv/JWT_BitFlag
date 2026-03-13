@@ -1,12 +1,25 @@
 const { randomUUID } = require('crypto');
 
-const usersById = new Map();
-const userIdByUsername = new Map();
+const { readJson, writeJsonAtomic } = require('./jsonDb');
+
+const USERS_FILE = 'users.json';
+
+function loadDb() {
+	return readJson(USERS_FILE, { users: [] });
+}
+
+/**
+ * @param {{ users: Array<any> }} db
+ */
+function saveDb(db) {
+	writeJsonAtomic(USERS_FILE, db);
+}
 
 function createUser(input) {
+	const db = loadDb();
 	const normalized = input.username.trim().toLowerCase();
 	if (!normalized) throw new Error('Username required');
-	if (userIdByUsername.has(normalized)) throw new Error('Username already exists');
+	if (db.users.some((u) => u.username === normalized)) throw new Error('Username already exists');
 
 	const user = {
 		id: randomUUID(),
@@ -15,33 +28,57 @@ function createUser(input) {
 		permissions: input.permissions,
 	};
 
-	usersById.set(user.id, user);
-	userIdByUsername.set(user.username, user.id);
+	db.users.push(user);
+	saveDb(db);
 
-	return user;
+	return { ...user };
 }
 
 function findByUsername(username) {
+	const db = loadDb();
 	const normalized = username.trim().toLowerCase();
-	const id = userIdByUsername.get(normalized);
-	if (!id) return null;
-	return usersById.get(id) ?? null;
+	const user = db.users.find((u) => u.username === normalized);
+	return user ? { ...user } : null;
 }
 
 function findById(id) {
-	return usersById.get(id) ?? null;
+	const db = loadDb();
+	const user = db.users.find((u) => u.id === id);
+	return user ? { ...user } : null;
 }
 
 function listUsers() {
-	return Array.from(usersById.values());
+	const db = loadDb();
+	return db.users.map((u) => ({ ...u }));
 }
 
 function setPermissions(id, permissions) {
-	const user = usersById.get(id);
-	if (!user) return null;
-	user.permissions = permissions;
-	usersById.set(id, user);
-	return user;
+	const db = loadDb();
+	const idx = db.users.findIndex((u) => u.id === id);
+	if (idx === -1) return null;
+	const updated = { ...db.users[idx], permissions };
+	db.users[idx] = updated;
+	saveDb(db);
+	return { ...updated };
 }
 
-module.exports = { createUser, findByUsername, findById, listUsers, setPermissions };
+function setPasswordHash(id, passwordHash) {
+	const db = loadDb();
+	const idx = db.users.findIndex((u) => u.id === id);
+	if (idx === -1) return null;
+	const updated = { ...db.users[idx], passwordHash };
+	db.users[idx] = updated;
+	saveDb(db);
+	return { ...updated };
+}
+
+function deleteUser(id) {
+	const db = loadDb();
+	const idx = db.users.findIndex((u) => u.id === id);
+	if (idx === -1) return false;
+	db.users.splice(idx, 1);
+	saveDb(db);
+	return true;
+}
+
+module.exports = { createUser, findByUsername, findById, listUsers, setPermissions, setPasswordHash, deleteUser };

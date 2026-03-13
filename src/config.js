@@ -8,6 +8,7 @@ const env = {
 	jwtIssuer: process.env.JWT_ISSUER || 'jwt-demo',
 	jwtAudience: process.env.JWT_AUDIENCE || 'jwt-demo',
 	jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1h',
+	jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
 };
 
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {

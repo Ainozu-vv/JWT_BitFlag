@@ -2,6 +2,7 @@ const { httpError } = require('../utils/httpError');
 const { verifyAccessToken } = require('./jwt');
 const { hasAll, namesFromMask } = require('./permissions');
 const { env } = require('../config');
+const { isAccessTokenRevoked } = require('../store/tokens');
 
 
 function getBearerToken(req) {
@@ -19,12 +20,20 @@ function requireAuth(req, res, next) {
 		if (!token) return next(httpError(401, 'Missing Bearer token'));
 
 		const claims = verifyAccessToken(env, token);
+		if (isAccessTokenRevoked(claims.jti)) {
+			return next(httpError(401, 'Token revoked'));
+		}
 
 		req.user = /** @type {AuthUser} */ ({
 			id: claims.sub,
 			username: claims.username,
 			permissions: claims.permissions,
 		});
+
+		req.token = {
+			id: claims.jti,
+			expiresAt: claims.exp,
+		};
 
 		return next();
 	} catch (err) {

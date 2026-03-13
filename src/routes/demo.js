@@ -26,4 +26,8 @@ router.get('/admin', requireAuth, requirePermissions(Permissions.ADMIN), (req, r
 	res.json({ ok: true, message: 'admin endpoint', user: { username: req.user.username } });
 });
 
+router.get('/write', requireAuth, requirePermissions(Permissions.USER_WRITE), (req, res) => {
+	res.json({ ok: true, message: 'user_write endpoint', user: { username: req.user.username } });
+});
+
 module.exports = router;
