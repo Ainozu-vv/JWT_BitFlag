@@ -35,7 +35,7 @@ async function seedAdmin() {
 	createUser({
 		username: 'admin',
 		passwordHash,
-		permissions: Permissions.ADMIN | Permissions.USER_READ | Permissions.USER_WRITE,
+		permissions: Permissions.ADMIN 
 	});
 
 	console.log('Seeded admin user: admin / admin123');
